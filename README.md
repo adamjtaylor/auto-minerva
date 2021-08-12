@@ -20,6 +20,7 @@ Returns: json as string
 
 ```
 story.py image.ome.tif
+```
 
 Save a story.json from the command line
 ```
