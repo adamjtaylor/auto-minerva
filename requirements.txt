@@ -1,13 +1,11 @@
-json
 numpy
-ome_types
-sklearn
-sys
+ome-types
+scikit-learn
 threadpoolctl
 tifffile
 zarr
 matplotlib
 scipy
 tqdm
-skimage
+scikit-image
 colour
