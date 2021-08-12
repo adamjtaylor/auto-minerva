@@ -1,0 +1,13 @@
+json
+numpy
+ome_types
+sklearn
+sys
+threadpoolctl
+tifffile
+zarr
+matplotlib
+scipy
+tqdm
+skimage
+colour
