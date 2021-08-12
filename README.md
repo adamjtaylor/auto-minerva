@@ -14,9 +14,9 @@ while read requirement; do conda install --yes $requirement; done < requirements
 
 ## Use
 
-In python
-Input: image.ome.tif
-Returns: json as string
+In python 
+Input: `image.ome.tif`
+Returns: json as string 
 
 ```
 story.py image.ome.tif
