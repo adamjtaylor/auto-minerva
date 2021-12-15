@@ -1,6 +1,7 @@
 import json
 import numpy as np
 import ome_types
+import scipy.stats
 import sklearn.mixture
 import sys
 import threadpoolctl
@@ -20,14 +21,20 @@ def auto_threshold(img):
     gmm = sklearn.mixture.GaussianMixture(3, max_iter=1000, tol=1e-6)
     gmm.fit(img_log.reshape((-1,1)))
     means = gmm.means_[:, 0]
-    covars = gmm.covariances_[:, 0, 0]
     _, i1, i2 = np.argsort(means)
+    mean1, mean2 = means[[i1, i2]]
+    std1, std2 = gmm.covariances_[[i1, i2], 0, 0] ** 0.5
 
-    vmin, vmax = means[[i1, i2]] + covars[[i1, i2]] ** 0.5 * 2
-    if vmin >= means[i2]:
-        vmin = means[i2] + covars[i2] ** 0.5 * -1
-    vmin = max(np.exp(vmin), img.min(), 0)
-    vmax = min(np.exp(vmax), img.max())
+    x = np.linspace(mean1, mean2, 50)
+    y1 = scipy.stats.norm(mean1, std1).pdf(x) * gmm.weights_[i1]
+    y2 = scipy.stats.norm(mean2, std2).pdf(x) * gmm.weights_[i2]
+
+    lmax = mean2 + 2 * std2
+    lmin = x[np.argmin(np.abs(y1 - y2))]
+    if lmin >= mean2:
+        lmin = mean2 - 2 * std2
+    vmin = max(np.exp(lmin), img.min(), 0)
+    vmax = min(np.exp(lmax), img.max())
 
     return vmin, vmax
 
@@ -64,11 +71,25 @@ def main():
     print(f"reading metadata", file=sys.stderr)
     try:
         ome = ome_types.from_xml(tiff.pages[0].tags[270].value)
-        channel_names = [c.name for c in ome.images[0].pixels.channels]
+        ome_px = ome.images[0].pixels
+        pixel_ratio = ome_px.physical_size_x_quantity / ome_px.physical_size_y_quantity
+        if not np.isclose(pixel_ratio, 1):
+            print(
+                "WARNING: Non-square pixels detected. Using only X-size to set scale bar.",
+                file=sys.stderr,
+            )
+        pixels_per_micron = 1 / ome_px.physical_size_x_quantity.to("um").magnitude
+        channel_names = [c.name for c in ome_px.channels]
         for i, n in enumerate(channel_names):
             if not n:
                 channel_names[i] = f"Channel {i + 1}"
     except:
+        print(
+            "WARNING: Could not read OME metadata. Story will use generic channel names and\n"
+            "    the scale bar will be omitted.",
+            file=sys.stderr,
+        )
+        pixels_per_micron = None
         channel_names = [f"Channel {i + 1}" for i in range(zarray.shape[0])]
 
     story = {
@@ -76,6 +97,7 @@ def main():
             "name": "",
             "rotation": 0,
             "text": "",
+            "pixels_per_micron": pixels_per_micron,
         },
         "groups": [],
         "waypoints": [],
