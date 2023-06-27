@@ -7,6 +7,7 @@ import sys
 import threadpoolctl
 import tifffile
 import zarr
+from itertools import chain
 
 
 def auto_threshold(img):
@@ -99,11 +100,13 @@ def main():
             "text": "",
             "pixels_per_micron": pixels_per_micron,
         },
+        "defaults": [],
         "groups": [],
         "waypoints": [],
     }
 
     color_cycle = 'ffffff', 'ff0000', '00ff00', '0000ff'
+    default_defs = []
 
     scale = np.iinfo(zarray.dtype).max if np.issubdtype(zarray.dtype, np.integer) else 1
     for gi, idx_start in enumerate(range(0, zarray.shape[0], 4), 1):
@@ -136,10 +139,14 @@ def main():
                 "min": vmin,
                 "max": vmax,
             })
+        default_defs.append(channel_defs)
         story["groups"].append({
             "label": f"Group {gi}",
             "channels": channel_defs,
+            "render": channel_defs
         })
+        
+    story['defaults'] = list(chain.from_iterable(default_defs))
 
     print(json.dumps(story))
 
