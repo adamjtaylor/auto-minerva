@@ -115,7 +115,7 @@ def main():
         channel_defs = []
         for ci, color in zip(channel_numbers, color_cycle):
             print(
-                f"analyzing channel {ci + 1}/{zarray.shape[0]}", file=sys.stderr
+                f"Analyzing channel {ci + 1}/{zarray.shape[0]}", file=sys.stderr
             )
             img = zarray[ci]
             if signed and img.min() < 0:
@@ -123,10 +123,17 @@ def main():
             try:
                 vmin, vmax = auto_threshold(img)
             except:
-                #print("Auto threshold failed. Using original min and 90th percentile")
+                print(
+                    "  WARNING: Auto threshold failed. Using original min and 90th percentile",
+                    file=sys.stderr
+                    )
                 vmin = img.min()
                 vmax = np.quantile(img, 0.9)
                 if vmax == 0:
+                    print(
+                        "  WARNING: 90th percentile is 0. Setting vmax to 1",
+                        file=sys.stderr
+                        )
                     vmax = 1
                     
 
@@ -145,7 +152,7 @@ def main():
             "channels": channel_defs,
             "render": channel_defs
         })
-        
+
     story['defaults'] = list(chain.from_iterable(default_defs))
 
     print(json.dumps(story))
